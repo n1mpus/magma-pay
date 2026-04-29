@@ -134,6 +134,15 @@
             </label>
             <button type="submit">Обновить спред</button>
         </form>
+        <form action="/admin/set-online" method="POST" class="form-grid compact-top">
+            <label>Базовый онлайн
+                <input type="number" name="online" min="0" value="{{ settings.online }}" required>
+            </label>
+            <label>Диапазон скачка онлайна (+/-)
+                <input type="number" name="online_variation" min="0" max="5000" value="{{ settings.online_variation if settings.online_variation is not none else 7 }}" required>
+            </label>
+            <button type="submit">Обновить онлайн</button>
+        </form>
         <form action="/admin/set-insurance" method="POST" class="form-grid compact-top">
             <input type="hidden" name="email" value="all">
             <label>Минимальный страховой баланс платформы

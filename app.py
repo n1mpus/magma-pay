@@ -241,6 +241,8 @@ def insurance_is_paid(user):
 
 
 def normalize_runtime_settings(settings):
+    settings["online"] = max(0, safe_int(settings.get("online"), 0))
+    settings["online_variation"] = max(0, min(5000, safe_int(settings.get("online_variation"), 7)))
     settings["spread_percent"] = round(max(0.1, min(25, safe_float(settings.get("spread_percent"), 3.6))), 2)
     settings["insurance_default"] = max(safe_int(settings.get("insurance_default"), 100), 0)
     settings["insurance_minimum"] = max(safe_int(settings.get("insurance_minimum"), settings["insurance_default"]), 0)
@@ -335,6 +337,7 @@ DEFAULT_STATE = {
     "admin_logs": [],
         "settings": {
         "online": 1284,
+        "online_variation": 7,
         "spread_percent": 3.6,
         "rub_rate": 92.4,
         "rate_change": 1.18,
@@ -850,7 +853,10 @@ def login():
             session["user"] = email
             session["csrf_token"] = secrets.token_urlsafe(32)
             session.permanent = True
+            session["counted_online"] = True
             update_presence(email)
+            normalize_runtime_settings(STATE["settings"])
+            STATE["settings"]["online"] = max(0, safe_int(STATE["settings"].get("online"), 0) + 1)
             clear_rate_limit("login", login_key)
             append_admin_log(STATE, "system", "auth_success", email, {"ip": client_ip()})
             save_state(STATE)
@@ -1739,6 +1745,32 @@ def admin_set_spread():
     return redirect(url_for("admin"))
 
 
+@app.route("/admin/set-online", methods=["POST"])
+@admin_required
+def admin_set_online():
+    online_value = safe_int(request.form.get("online"))
+    variation_value = safe_int(request.form.get("online_variation"))
+    if online_value < 0:
+        flash("Онлайн не может быть отрицательным.", "error")
+        return redirect(url_for("admin"))
+    if variation_value < 0 or variation_value > 5000:
+        flash("Диапазон онлайна должен быть в пределах 0-5000.", "error")
+        return redirect(url_for("admin"))
+    normalize_runtime_settings(STATE["settings"])
+    STATE["settings"]["online"] = online_value
+    STATE["settings"]["online_variation"] = variation_value
+    append_admin_log(
+        STATE,
+        current_user_email(),
+        "set_online_settings",
+        "system",
+        {"online": online_value, "online_variation": variation_value},
+    )
+    save_state(STATE)
+    flash("Параметры онлайна обновлены.", "success")
+    return redirect(url_for("admin"))
+
+
 @app.route("/admin/toggle-user", methods=["POST"])
 @admin_required
 def admin_toggle_user():
@@ -1896,7 +1928,10 @@ def api_admin_live():
 @login_required
 def api_live():
     normalize_runtime_settings(STATE["settings"])
-    STATE["settings"]["online"] = max(240, STATE["settings"]["online"] + random.randint(-5, 7))
+    base_online = max(0, safe_int(STATE["settings"].get("online"), 0))
+    variation = max(0, safe_int(STATE["settings"].get("online_variation"), 7))
+    jitter = random.randint(-variation, variation) if variation > 0 else 0
+    online_view = max(0, base_online + jitter)
     current_rate = safe_float(STATE["settings"]["rub_rate"], 92.4)
     synced = sync_market_rate_if_needed(STATE["settings"], min_interval_sec=20)
     synced_rate = safe_float(STATE["settings"]["rub_rate"], current_rate)
@@ -1911,7 +1946,7 @@ def api_live():
     save_state(STATE)
     return jsonify(
         {
-            "online": STATE["settings"]["online"],
+            "online": online_view,
             "rub_rate": STATE["settings"]["rub_rate"],
             "rate_label": f"КУРС $ {STATE['settings']['rub_rate']} ₽",
             "rate_change": STATE["settings"]["rate_change"],
@@ -1936,6 +1971,10 @@ def api_notifications_read():
 
 @app.route("/logout")
 def logout():
+    if session.get("counted_online"):
+        normalize_runtime_settings(STATE["settings"])
+        STATE["settings"]["online"] = max(0, safe_int(STATE["settings"].get("online"), 0) - 1)
+        save_state(STATE)
     session.clear()
     flash("Сессия завершена.", "success")
     return redirect(url_for("login"))

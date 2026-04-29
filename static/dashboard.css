@@ -977,6 +977,16 @@ button:hover,
     color: var(--muted);
 }
 
+.auth-card .form-grid {
+    gap: 12px;
+}
+
+.auth-card input,
+.auth-card select,
+.auth-card textarea {
+    min-height: 48px;
+}
+
 .auth-footer {
     display: flex;
     justify-content: flex-start;
@@ -1369,27 +1379,58 @@ body[data-page="dashboard"] .hero-card.accent span::after {
     }
 
     .auth-shell {
+        min-height: 100dvh;
         padding: 12px;
+        padding-top: max(12px, env(safe-area-inset-top));
         padding-left: max(12px, env(safe-area-inset-left));
         padding-right: max(12px, env(safe-area-inset-right));
         padding-bottom: max(12px, env(safe-area-inset-bottom));
+        align-content: start;
+        overflow-y: auto;
     }
 
     .auth-card {
         width: 100%;
+        max-width: 100%;
         padding: 18px;
         border-radius: 14px;
+        margin: 0 auto;
     }
 
-    .auth-copy,
+    .auth-card h1 {
+        font-size: 30px;
+        line-height: 1.05;
+        margin-bottom: 10px;
+    }
+
+    .auth-copy {
+        font-size: 16px;
+        line-height: 1.45;
+        margin: 6px 0 14px;
+    }
+
     .auth-safe-note {
         font-size: 14px;
+        margin-top: 10px;
     }
 
-    button,
-    .button-link {
-        min-height: 46px;
+    .auth-card label {
+        font-size: 15px;
+    }
+
+    .auth-card input,
+    .auth-card select,
+    .auth-card textarea {
+        min-height: 52px;
+        font-size: 18px;
+        padding: 12px 13px;
+    }
+
+    .auth-card button,
+    .auth-card .button-link {
+        min-height: 52px;
         width: 100%;
+        font-size: 18px;
     }
 
     .surface,

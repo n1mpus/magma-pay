@@ -10,7 +10,7 @@
         </div>
     </div>
     <h1>{{ "Создание аккаунта" if register_mode else "Вход в платформу" }}</h1>
-    <p class="auth-copy">Управление балансом, обменом USDT, реквизитами и поддержкой в закрытом кабинете.</p>
+    <p class="auth-copy">Закрытый частный обменник криптовалют.</p>
     <form method="POST" class="form-grid">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <label>Email
