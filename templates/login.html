@@ -17,17 +17,11 @@
             <input type="email" name="email" placeholder="Введите email" required>
         </label>
         <label>Пароль
-            <div class="password-wrap">
-                <input type="password" name="password" placeholder="Минимум 6 символов" data-password-toggle required>
-                <button type="button" class="password-toggle" data-password-toggle-btn>Показать</button>
-            </div>
+            <input type="password" name="password" placeholder="Минимум 6 символов" required>
         </label>
         {% if register_mode %}
         <label>Повтор пароля
-            <div class="password-wrap">
-                <input type="password" name="confirm_password" placeholder="Повторите пароль" data-password-toggle required>
-                <button type="button" class="password-toggle" data-password-toggle-btn>Показать</button>
-            </div>
+            <input type="password" name="confirm_password" placeholder="Повторите пароль" required>
         </label>
         {% endif %}
         <button type="submit">{{ "Создать аккаунт" if register_mode else "Войти" }}</button>

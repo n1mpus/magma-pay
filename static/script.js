@@ -414,31 +414,6 @@ function initManualTradePreview() {
     update();
 }
 
-function initPasswordToggles() {
-    const buttons = Array.from(document.querySelectorAll("[data-password-toggle-btn]"));
-    buttons.forEach((btn) => {
-        const wrap = btn.closest(".password-wrap");
-        const input = wrap ? wrap.querySelector("[data-password-toggle]") : null;
-        if (!input) return;
-        function syncVisibility() {
-            const hasValue = String(input.value || "").length > 0;
-            wrap.classList.toggle("has-value", hasValue);
-            if (!hasValue) {
-                input.type = "password";
-                btn.textContent = "Показать";
-            }
-        }
-        input.addEventListener("input", syncVisibility);
-        input.addEventListener("blur", syncVisibility);
-        btn.addEventListener("click", () => {
-            const isHidden = input.type === "password";
-            input.type = isHidden ? "text" : "password";
-            btn.textContent = isHidden ? "Скрыть" : "Показать";
-        });
-        syncVisibility();
-    });
-}
-
 document.addEventListener("DOMContentLoaded", () => {
     attachCsrfToForms();
 
@@ -475,5 +450,4 @@ document.addEventListener("DOMContentLoaded", () => {
     startAdminLivePolling();
     initAdminUserSearch();
     initManualTradePreview();
-    initPasswordToggles();
 });

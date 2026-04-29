@@ -570,6 +570,7 @@ textarea {
     background: var(--panel-2);
     outline: none;
     transition: border-color 180ms ease, box-shadow 180ms ease;
+    font-size: 16px;
 }
 
 input:focus,
@@ -1243,6 +1244,8 @@ button:hover,
     display: grid;
     gap: 4px;
     color: var(--muted);
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .trade-right {
@@ -1339,4 +1342,66 @@ body[data-page="dashboard"] .hero-card.accent span::after {
     content: "Спред" !important;
     font-size: 15px;
     color: var(--muted);
+}
+
+/* Mobile-first hardening for iOS/Android usability */
+@media (max-width: 760px) {
+    h1 {
+        font-size: clamp(24px, 7vw, 32px);
+    }
+
+    h2 {
+        font-size: 20px;
+    }
+
+    .subline {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .status-chips {
+        width: 100%;
+    }
+
+    .chip {
+        min-height: 42px;
+        padding: 10px 12px;
+    }
+
+    .auth-shell {
+        padding: 12px;
+        padding-left: max(12px, env(safe-area-inset-left));
+        padding-right: max(12px, env(safe-area-inset-right));
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+
+    .auth-card {
+        width: 100%;
+        padding: 18px;
+        border-radius: 14px;
+    }
+
+    .auth-copy,
+    .auth-safe-note {
+        font-size: 14px;
+    }
+
+    button,
+    .button-link {
+        min-height: 46px;
+        width: 100%;
+    }
+
+    .surface,
+    .hero-card,
+    .feature-card,
+    .admin-user,
+    .trade-entry,
+    .row-card {
+        border-radius: 12px;
+    }
+
+    .sidebar-nav a {
+        min-height: 42px;
+    }
 }
