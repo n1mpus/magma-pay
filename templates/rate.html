@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block page_id %}rate{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <div class="eyebrow">USDT Rate</div>
+        <h1>Прямое отслеживание курса</h1>
+        <p class="subline">Живой курс, изменение за сессию и общий визуальный пульс платформы.</p>
+    </div>
+</header>
+
+<section class="surface rate-hero">
+    <div class="rate-big">
+        <span>Текущий курс</span>
+        <strong id="rate-screen">{{ settings.rub_rate }} ₽</strong>
+        <small id="change-screen">{{ settings.rate_change }}%</small>
+    </div>
+    <div class="chart-bars premium">
+        {% for point in analytics.series %}
+        <div class="bar-col">
+            <div class="bar" style="height: {{ point.volume + 25 }}px"></div>
+            <span>{{ point.day[-2:] }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

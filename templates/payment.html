@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block page_id %}payment{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <div class="eyebrow">Страница оплаты</div>
+        <h1>{{ network_label }}</h1>
+        <p class="subline">Переведите точную сумму на адрес ниже и подтвердите оплату.</p>
+    </div>
+</header>
+
+<section class="payment-layout">
+    <div class="payment-stage">
+        <div class="glow-orbit orbit-a"></div>
+        <div class="glow-orbit orbit-b"></div>
+        <div class="payment-logo-wrap">
+            <img src="/static/tether.svg" alt="Tether">
+            <div class="network-tag">{{ network }}</div>
+        </div>
+    </div>
+    <div class="surface payment-panel">
+        <h2>К оплате {{ payment.amount_usdt }} USDT</h2>
+        <div class="address-box">{{ wallet_address }}</div>
+        <div class="mini-meta">
+            <span>Заявка: {{ payment.id }}</span>
+            <span>Состояние: {{ payment.status|req_status_label }}</span>
+        </div>
+        <form action="/payment/{{ payment.id }}/confirm" method="POST">
+            <button type="submit">Я оплатил</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

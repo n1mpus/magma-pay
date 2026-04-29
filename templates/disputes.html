@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block page_id %}disputes{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <div class="eyebrow">Споры</div>
+        <h1>Споры по операциям</h1>
+        <p class="subline">Отдельный журнал всех открытых и закрытых спорных кейсов.</p>
+    </div>
+</header>
+
+<section class="surface">
+    <div class="rows">
+        {% for item in disputes %}
+        <article class="row-card">
+            <div>
+                <strong>{{ item.status|req_status_label }}</strong>
+                <span>{{ item.created_at }}</span>
+            </div>
+            <div>{{ item.reason }}</div>
+            <div>{{ item.request_id }}</div>
+        </article>
+        {% else %}
+        <p class="muted">Споров пока нет.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

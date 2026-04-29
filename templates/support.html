@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block page_id %}support{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <div class="eyebrow">Поддержка</div>
+        <h1>Чат поддержки</h1>
+        <p class="subline">Оператор ответит в этом чате. Новые сообщения появляются автоматически.</p>
+    </div>
+</header>
+
+<section class="surface">
+    <div class="chat-thread" id="support-thread" data-last-id="{{ support_last_id }}">
+        {% if thread %}
+        {% for item in thread.messages %}
+        <article class="chat-bubble {{ item.author_role }}">
+            <strong>{{ "Поддержка" if item.author_role == "admin" else "Вы" }}</strong>
+            <span>{{ item.text }}</span>
+        </article>
+        {% endfor %}
+        {% else %}
+        <p class="muted">Диалог пока пуст.</p>
+        {% endif %}
+    </div>
+    <form action="/support/send" method="POST" class="form-grid support-form">
+        <label>Сообщение
+            <textarea name="text" rows="4" placeholder="Опишите вопрос или проблему" required></textarea>
+        </label>
+        <button type="submit">Отправить</button>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block page_id %}history{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <div class="eyebrow">История</div>
+        <h1>История операций</h1>
+    </div>
+</header>
+
+<section class="surface">
+    <div class="rows">
+        {% for item in requests %}
+        <article class="row-card">
+            <div>
+                <strong>{{ item.type|req_type_label }}</strong>
+                <span>{{ item.created_at|dt_fmt }}</span>
+            </div>
+            <div class="status-badge {{ item.status }}">{{ item.status|req_status_label }}</div>
+            <div>{{ item.amount_usdt|amount_fmt }} USDT</div>
+        </article>
+        {% else %}
+        <article class="empty-notice">
+            <strong>История пуста</strong>
+            <span>Заявки появятся после первых действий в кабинете.</span>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block page_id %}settings{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <div class="eyebrow">Настройки</div>
+        <h1>Настройки аккаунта</h1>
+        <p class="subline">Смена темы интерфейса и обновление пароля.</p>
+    </div>
+</header>
+
+<section class="admin-grid">
+    <section class="surface">
+        <div class="surface-head">
+            <h2>Тема интерфейса</h2>
+        </div>
+        <form action="/settings/theme" method="POST" class="form-grid">
+            <label>Выберите тему
+                <select name="theme">
+                    <option value="cyber" {% if user.theme == "cyber" %}selected{% endif %}>Кибер (тёмная)</option>
+                    <option value="light" {% if user.theme == "light" %}selected{% endif %}>Светлая</option>
+                </select>
+            </label>
+            <button type="submit">Применить тему</button>
+        </form>
+    </section>
+
+    <section class="surface">
+        <div class="surface-head">
+            <h2>Смена пароля</h2>
+        </div>
+        <form action="/settings/password" method="POST" class="form-grid">
+            <label>Текущий пароль
+                <input type="password" name="current_password" required>
+            </label>
+            <label>Новый пароль
+                <input type="password" name="new_password" required>
+            </label>
+            <label>Повтор нового пароля
+                <input type="password" name="confirm_password" required>
+            </label>
+            <button type="submit">Обновить пароль</button>
+        </form>
+    </section>
+</section>
+{% endblock %}

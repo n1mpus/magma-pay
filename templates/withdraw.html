@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block page_id %}withdraw{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <div class="eyebrow">Вывод</div>
+        <h1>Вывод USDT с платформы</h1>
+        <p class="subline">Комиссия на вывод: {{ fee_percent }}%.</p>
+    </div>
+</header>
+
+<section class="surface">
+    <form action="/withdraw/create" method="POST" class="form-grid">
+        <label>Сумма USDT
+            <input id="withdraw-amount" type="number" name="amount" min="{{ settings.withdraw_min }}" max="{{ settings.withdraw_max }}" required>
+        </label>
+        <label>Сеть
+            <select name="network" required>
+                <option value="TRC20">USDT TRC-20</option>
+                <option value="TON">USDT TON</option>
+            </select>
+        </label>
+        <label>Адрес кошелька
+            <input type="text" name="wallet" placeholder="Введите адрес" required>
+        </label>
+        <div class="calc-box">
+            <span>Комиссия {{ fee_percent }}%</span>
+            <strong id="withdraw-preview">К выводу: 0 USDT</strong>
+        </div>
+        <button type="submit">Создать заявку</button>
+    </form>
+</section>
+{% endblock %}

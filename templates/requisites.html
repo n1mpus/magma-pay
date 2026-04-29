@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block page_id %}requisites{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <div class="eyebrow">Реквизиты</div>
+        <h1>Добавление реквизитов</h1>
+        <p class="subline">Сохраните карту или телефон для обмена USDT to RUB.</p>
+    </div>
+</header>
+
+<section class="surface">
+    <div class="surface-head">
+        <h2>Новый реквизит</h2>
+    </div>
+    <form action="/requisites/create" method="POST" class="form-grid">
+        <label>Название
+            <input type="text" name="label" placeholder="Основной реквизит" required>
+        </label>
+        <label>Банк
+            <select name="bank" required>
+                <option value="" disabled selected>Выберите банк</option>
+                {% for bank_name in bank_options %}
+                <option value="{{ bank_name }}">{{ bank_name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Получатель (формат: Имя Ф.)
+            <input type="text" name="holder" placeholder="Иван И." required>
+        </label>
+        <label>Тип реквизита
+            <select name="number_type" id="number-type" data-requisite-type>
+                <option value="card">Номер карты</option>
+                <option value="phone">Номер телефона</option>
+            </select>
+        </label>
+        <label>Номер
+            <input type="text" name="number" id="requisite-number" placeholder="0000000000000000" data-requisite-number required>
+        </label>
+        <label>Лимит в RUB (необязательно)
+            <input type="number" name="limit_rub" min="1" placeholder="Оставьте пустым без лимита">
+        </label>
+        <button type="submit">Сохранить</button>
+    </form>
+</section>
+
+<section class="surface">
+    <div class="surface-head">
+        <h2>Список реквизитов</h2>
+    </div>
+    <div class="feature-grid two">
+        {% for req in requisites %}
+        <article class="feature-card">
+            <strong>{{ req.label }}</strong>
+            <span>{{ req.bank }}</span>
+            <span>{{ "Телефон" if req.number_type == "phone" else "Карта" }}: {{ req.number }}</span>
+            <span>{% if req.limit_rub %}Лимит: {{ req.limit_rub }} RUB{% else %}Без лимита{% endif %}</span>
+        </article>
+        {% else %}
+        <p class="muted">Реквизитов пока нет.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

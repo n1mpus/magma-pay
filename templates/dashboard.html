@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Рабочая панель · {{ brand_name }}{% endblock %}
+{% block page_id %}dashboard{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <div class="eyebrow">Главная</div>
+        <h1>Рабочая панель</h1>
+        <p class="subline">Контроль баланса, страхового депозита и активности платформы в одном месте.</p>
+    </div>
+    <div class="status-chips">
+        <div class="chip">Онлайн <strong id="online-pill">{{ settings.online|amount_fmt }}</strong></div>
+    </div>
+</header>
+
+<section class="hero-strip">
+    <article class="hero-card">
+        <span>Основной баланс</span>
+        <strong id="main-balance">{{ user.balance|amount_fmt }} USDT</strong>
+    </article>
+    <article class="hero-card">
+        <span>Страховой депозит</span>
+        <strong id="insurance-balance">{{ user.insurance_balance|amount_fmt }} USDT</strong>
+    </article>
+    <article class="hero-card accent">
+        <span>Спред</span>
+        <strong id="spread-pill">{{ settings.spread_percent }} %</strong>
+    </article>
+</section>
+
+<section class="surface">
+    <div class="surface-head">
+        <h2>Быстрые действия</h2>
+    </div>
+    <div class="feature-grid three">
+        <a href="/deposit/new" class="feature-card quick-action">
+            <span class="action-glyph">+</span>
+            <strong>Пополнить USDT</strong>
+            <span>Создайте заявку и перейдите на отдельную страницу оплаты.</span>
+        </a>
+        <a href="/usdt-to-fiat" class="feature-card quick-action">
+            <span class="action-glyph">⇄</span>
+            <strong>Обмен USDT to RUB</strong>
+            <span>Запустите режим торговли по сохраненным реквизитам.</span>
+        </a>
+        <a href="/requisites" class="feature-card quick-action">
+            <span class="action-glyph">▣</span>
+            <strong>Реквизиты</strong>
+            <span>Добавьте карты или телефон для выплат в рублях.</span>
+        </a>
+    </div>
+</section>
+
+<section class="surface">
+    <div class="surface-head">
+        <h2>Последние операции</h2>
+    </div>
+    <div class="rows">
+        {% for item in requests %}
+        <article class="row-card">
+            <div>
+                <strong>{{ item.type|req_type_label }}</strong>
+                <span>{{ item.created_at|dt_fmt }}</span>
+            </div>
+            <div class="status-badge {{ item.status }}">{{ item.status|req_status_label }}</div>
+            <div>{{ item.amount_usdt|amount_fmt }} USDT</div>
+        </article>
+        {% else %}
+        <p class="muted empty-state">Операций пока нет</p>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="surface">
+    <div class="surface-head">
+        <h2>Уведомления</h2>
+    </div>
+    <div class="notice-stack">
+        {% for note in notifications %}
+        <article class="notice {{ note.level }} notice-animated">
+            <strong>{{ note.title }}</strong>
+            <span>{{ note.message }}</span>
+        </article>
+        {% else %}
+        <article class="empty-notice">
+            <strong>Нет уведомлений</strong>
+            <span>Новые события появятся здесь автоматически.</span>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

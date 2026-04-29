@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}{{ brand_name }}{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body class="theme-{{ active_theme }}" data-page="{% block page_id %}app{% endblock %}">
+{% if current_user %}
+<div class="app-layout">
+    <aside class="sidebar">
+        <a href="/dashboard" class="brand-lockup">
+            <div class="brand-mark"><img src="/static/magma-logo.svg" alt="MAGMA PAY"></div>
+            <div>
+                <div class="brand-name">MAGMA PAY</div>
+                <div class="brand-sub">P2P Платформа</div>
+            </div>
+        </a>
+
+        <nav class="sidebar-nav">
+            <a href="/dashboard" class="{% if active_nav == 'dashboard' %}active{% endif %}">Главная</a>
+            <a href="/usdt-to-fiat" class="{% if active_nav == 'trade' %}active{% endif %}">Обмен USDT to RUB</a>
+            <a href="/requisites" class="{% if active_nav == 'requisites' %}active{% endif %}">Реквизиты</a>
+            <a href="/deposit/new" class="{% if active_nav == 'deposit' %}active{% endif %}">Пополнить USDT</a>
+            <a href="/withdraw/new" class="{% if active_nav == 'withdraw' %}active{% endif %}">Вывод USDT</a>
+            <a href="/disputes" class="{% if active_nav == 'disputes' %}active{% endif %}">Споры</a>
+            <a href="/support" class="{% if active_nav == 'support' %}active{% endif %}">Поддержка</a>
+            <a href="/history" class="{% if active_nav == 'history' %}active{% endif %}">История</a>
+            <a href="/settings" class="{% if active_nav == 'settings' %}active{% endif %}">Настройки</a>
+            {% if current_user.role == "admin" %}
+            <a href="/admin" class="{% if active_nav == 'admin' %}active{% endif %}">Админ-панель</a>
+            {% endif %}
+            <a href="/logout">Выход</a>
+        </nav>
+
+        <div class="sidebar-stat">
+            <span>Курс USDT / RUB</span>
+            <strong id="rate-pill">{{ settings.rub_rate }}</strong>
+            <small id="change-pill">{{ settings.rate_change }}%</small>
+            <div class="rate-label" id="rate-label">КУРС $ {{ settings.rub_rate }} ₽</div>
+        </div>
+    </aside>
+
+    <main class="main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="messages" id="flash-messages">
+            {% for category, message in messages %}
+            <div class="message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+</div>
+<div id="toast-stack" class="toast-stack"></div>
+{% else %}
+<main class="auth-shell{% if register_mode %} auth-shell-register{% endif %}">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="messages auth-messages" id="flash-messages">
+        {% for category, message in messages %}
+        <div class="message {{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+    {% block auth_content %}{% endblock %}
+</main>
+{% endif %}
+<script src="/static/script.js"></script>
+</body>
+</html>

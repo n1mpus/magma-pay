@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% block page_id %}admin{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <div class="eyebrow">Админ-панель</div>
+        <h1>Полное управление платформой</h1>
+        <p class="subline">Управление пользователями, трейдами, заявками, поддержкой и системными настройками.</p>
+    </div>
+</header>
+
+<section class="hero-strip four">
+    <article class="hero-card">
+        <span>Общий баланс</span>
+        <strong>{{ users.values() | sum(attribute='balance') | amount_fmt }} USDT</strong>
+    </article>
+    <article class="hero-card">
+        <span>Резерв</span>
+        <strong>{{ users.values() | sum(attribute='insurance_balance') | amount_fmt }} USDT</strong>
+    </article>
+    <article class="hero-card accent">
+        <span>Доход</span>
+        <strong>{{ analytics.platform_income | amount_fmt }} USDT</strong>
+    </article>
+    <article class="hero-card">
+        <span>Активные трейды</span>
+        <strong>{{ trades | selectattr("status", "equalto", "active") | list | length | amount_fmt }}</strong>
+    </article>
+</section>
+
+<section class="surface">
+    <div class="surface-head">
+        <h2>Очередь заявок</h2>
+    </div>
+    <div class="rows" id="admin-requests-list">
+        {% for item in requests %}
+        <article class="admin-request">
+            <div class="request-main">
+                <strong>{{ item.user }} / {{ item.type|req_type_label }}</strong>
+                <span>{{ item.created_at|dt_fmt }}</span>
+            </div>
+            <div class="status-badge {{ item.status }}">{{ item.status|req_status_label }}</div>
+            <div>{{ item.amount_usdt|amount_fmt }} USDT</div>
+            <div class="request-actions">
+                {% if item.type == "trade_activation" %}
+                <form action="/admin/trade/create" method="POST" class="inline-form">
+                    <input type="hidden" name="request_id" value="{{ item.id }}">
+                    <input type="number" name="amount_usdt" min="1" value="{{ item.meta.requested_amount_usdt or item.amount_usdt }}" required>
+                    <button type="submit">Добавить трейд</button>
+                </form>
+                <form action="/admin/request/{{ item.id }}/reject" method="POST">
+                    <button type="submit" class="btn-danger">Отклонить</button>
+                </form>
+                {% else %}
+                <form action="/admin/request/{{ item.id }}/approve" method="POST">
+                    <button type="submit">Одобрить</button>
+                </form>
+                <form action="/admin/request/{{ item.id }}/reject" method="POST">
+                    <button type="submit" class="btn-danger">Отклонить</button>
+                </form>
+                {% endif %}
+            </div>
+        </article>
+        {% else %}
+        <article class="empty-notice">
+            <strong>Новых заявок нет</strong>
+            <span>Очередь обновляется автоматически.</span>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="admin-grid">
+    <section class="surface">
+        <div class="surface-head">
+            <h2>Ручное создание трейда</h2>
+        </div>
+        <form action="/admin/trade/manual" method="POST" class="form-grid" id="admin-manual-trade-form" data-rate="{{ settings.rub_rate }}" data-spread="{{ settings.spread_percent }}">
+            <label>Пользователь
+                <select name="email" id="manual-trade-email" required>
+                    {% for email, user in users.items() if user.role != "admin" %}
+                    <option value="{{ email }}" data-balance="{{ user.balance }}">{{ email }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Сумма трейда (USDT)
+                <input type="number" name="amount_usdt" id="manual-trade-amount" min="1" required>
+            </label>
+            <div class="trade-preview" id="manual-trade-preview">
+                <div><span>Списание:</span><strong id="manual-preview-usdt">0 USDT</strong></div>
+                <div><span>Выплата в RUB:</span><strong id="manual-preview-rub">0 ₽</strong></div>
+                <div><span>Баланс пользователя:</span><strong id="manual-preview-balance">0 USDT</strong></div>
+            </div>
+            <button type="submit">Добавить трейд вручную</button>
+        </form>
+    </section>
+
+    <section class="surface">
+        <div class="surface-head">
+            <h2>Активные трейды</h2>
+        </div>
+        <div class="rows" id="admin-active-trades-list">
+            {% for trade in trades if trade.status == "active" %}
+            <article class="trade-entry">
+                <div class="trade-left">
+                    <div class="trade-amount">{{ trade.amount_usdt|amount_fmt }} <span>USDT</span></div>
+                    <div class="trade-lines">
+                        <span>{{ trade.user }}</span>
+                        <span>{{ trade.bank }} / {{ trade.holder }}</span>
+                        <span>{{ trade.number }}</span>
+                        <span>{{ trade.created_at|dt_fmt }}</span>
+                    </div>
+                </div>
+                <div class="trade-right">
+                    <div class="status-badge {{ trade.status }}">{{ trade.status|req_status_label }}</div>
+                </div>
+            </article>
+            {% else %}
+            <article class="empty-notice">
+                <strong>Нет активных трейдов</strong>
+                <span>После создания трейды появятся в этом блоке.</span>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+</section>
+
+<section class="admin-grid">
+    <section class="surface">
+        <div class="surface-head"><h2>Настройки платформы</h2></div>
+        <form action="/admin/set-spread" method="POST" class="form-grid">
+            <label>Спред
+                <input type="number" step="0.1" name="spread" value="{{ settings.spread_percent }}" required>
+            </label>
+            <button type="submit">Обновить спред</button>
+        </form>
+        <form action="/admin/set-insurance" method="POST" class="form-grid compact-top">
+            <input type="hidden" name="email" value="all">
+            <label>Минимальный страховой баланс платформы
+                <input type="number" name="insurance_balance" min="0" value="{{ settings.insurance_minimum if settings.insurance_minimum else 100 }}" required>
+            </label>
+            <button type="submit">Обновить минимум</button>
+        </form>
+        <form action="/admin/settings/deposit-addresses" method="POST" class="form-grid compact-top">
+            <label>Адрес пополнения TRC20
+                <input type="text" name="trc20_address" value="{{ settings.deposit_addresses['TRC20'] }}" required>
+            </label>
+            <label>Адрес пополнения TON
+                <input type="text" name="ton_address" value="{{ settings.deposit_addresses['TON'] }}" required>
+            </label>
+            <button type="submit">Обновить адреса пополнения</button>
+        </form>
+    </section>
+
+    <section class="surface">
+        <div class="surface-head"><h2>Уведомление пользователю</h2></div>
+        <form action="/admin/send-notification" method="POST" class="form-grid">
+            <label>Пользователь
+                <select name="email" required>
+                    {% for email, user in users.items() if user.role != "admin" %}
+                    <option value="{{ email }}">{{ email }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Заголовок
+                <input type="text" name="title" required>
+            </label>
+            <label>Сообщение
+                <textarea name="message" rows="3" required></textarea>
+            </label>
+            <label>Уровень
+                <select name="level">
+                    <option value="info">info</option>
+                    <option value="success">success</option>
+                    <option value="warning">warning</option>
+                </select>
+            </label>
+            <button type="submit">Отправить</button>
+        </form>
+    </section>
+</section>
+
+<section class="surface">
+    <div class="surface-head">
+        <h2>Пользователи</h2>
+        <input type="search" id="admin-user-search" class="search-input" placeholder="Поиск по email...">
+    </div>
+    <div class="rows" id="admin-users-list">
+        {% for email, user in users.items() %}
+        <article class="admin-user" data-email="{{ email|lower }}">
+            <div class="admin-user-head">
+                <strong>{{ email }}</strong>
+                <span class="status-badge {{ 'active' if user.online else 'blocked' }}">{{ "онлайн" if user.online else "оффлайн" }}</span>
+            </div>
+            <div class="admin-user-metrics">
+                <span>Баланс: {{ user.balance|amount_fmt }} USDT</span>
+                <span>Резерв: {{ user.insurance_balance|amount_fmt }} USDT</span>
+                <span>Страховой: {{ user.insurance_paid_value|amount_fmt }} USDT</span>
+            </div>
+            <div class="admin-user-meta">
+                <span>IP: {{ user.last_ip or "—" }}</span>
+                <span>UA: {{ user.last_user_agent or "—" }}</span>
+            </div>
+            {% if user.role != "admin" %}
+            <div class="admin-controls">
+                <form action="/admin/set-balance" method="POST" class="inline-form">
+                    <input type="hidden" name="email" value="{{ email }}">
+                    <input type="number" name="balance" min="0" value="{{ user.balance }}">
+                    <button type="submit" class="btn-secondary">Установить баланс</button>
+                </form>
+                <form action="/admin/balance-adjust" method="POST" class="inline-form">
+                    <input type="hidden" name="email" value="{{ email }}">
+                    <input type="number" name="amount" min="1" placeholder="Сумма">
+                    <button type="submit" name="action" value="add">+ Добавить</button>
+                    <button type="submit" name="action" value="subtract" class="btn-danger">- Списать</button>
+                </form>
+                <form action="/admin/set-insurance" method="POST" class="inline-form">
+                    <input type="hidden" name="email" value="{{ email }}">
+                    <input type="number" name="insurance_balance" min="0" value="{{ user.insurance_paid_value }}">
+                    <button type="submit" class="btn-secondary">Страховой депозит</button>
+                </form>
+                <form action="/admin/set-user-insurance-minimum" method="POST" class="inline-form">
+                    <input type="hidden" name="email" value="{{ email }}">
+                    <input type="number" name="insurance_minimum_override" min="0" placeholder="Мин. страховой (пусто = общий)" value="{{ '' if user.insurance_minimum_override is none else user.insurance_minimum_override }}">
+                    <button type="submit" class="btn-secondary">Мин. для пользователя</button>
+                </form>
+                <form action="/admin/toggle-user" method="POST" class="inline-form">
+                    <input type="hidden" name="email" value="{{ email }}">
+                    <button type="submit" class="btn-secondary">{{ "Разблокировать" if user.status == "blocked" else "Заблокировать" }}</button>
+                </form>
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="admin-grid">
+    <section class="surface">
+        <div class="surface-head"><h2>Поддержка</h2></div>
+        <div class="rows">
+            {% for thread in threads %}
+            <article class="admin-user">
+                <div class="admin-user-head">
+                    <strong>{{ thread.user }}</strong>
+                    <span>{{ thread.status|req_status_label }}</span>
+                </div>
+                <div class="chat-preview">
+                    {% if thread.messages %}
+                    <span>{{ thread.messages[-1].text }}</span>
+                    {% endif %}
+                </div>
+                <form action="/admin/support/reply" method="POST" class="form-grid">
+                    <input type="hidden" name="email" value="{{ thread.user }}">
+                    <label>Ответ
+                        <textarea name="text" rows="3" required></textarea>
+                    </label>
+                    <button type="submit">Ответить</button>
+                </form>
+            </article>
+            {% else %}
+            <article class="empty-notice">
+                <strong>Диалогов нет</strong>
+                <span>Обращения появятся после первого сообщения пользователя.</span>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="surface">
+        <div class="surface-head"><h2>Споры</h2></div>
+        <form action="/admin/open-dispute" method="POST" class="form-grid">
+            <label>Пользователь
+                <select name="email" required>
+                    {% for email, user in users.items() if user.role != "admin" %}
+                    <option value="{{ email }}">{{ email }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>ID заявки
+                <input type="text" name="request_id">
+            </label>
+            <label>Причина
+                <textarea name="reason" rows="3" required></textarea>
+            </label>
+            <button type="submit">Открыть спор</button>
+        </form>
+        <div class="rows compact-top">
+            {% for item in disputes %}
+            <article class="row-card">
+                <div>
+                    <strong>{{ item.user }}</strong>
+                    <span>{{ item.created_at|dt_fmt }}</span>
+                </div>
+                <div class="status-badge {{ item.status }}">{{ item.status|req_status_label }}</div>
+                <div>{{ item.reason }}</div>
+            </article>
+            {% else %}
+            <article class="empty-notice">
+                <strong>Споров пока нет</strong>
+                <span>Открытые кейсы появятся здесь.</span>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+</section>
+{% endblock %}

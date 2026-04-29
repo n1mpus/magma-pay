@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block page_id %}deposit{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <div class="eyebrow">Пополнение</div>
+        <h1>Пополнение USDT</h1>
+        <p class="subline">Выберите сеть и сумму. После этого откроется отдельная страница оплаты с адресом кошелька.</p>
+    </div>
+</header>
+
+<section class="surface">
+    <form action="/deposit/create" method="POST" class="form-grid">
+        <label>Сеть
+            <select name="network" required>
+                {% for network in networks %}
+                <option value="{{ network }}">{{ network_labels[network] }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Сумма USDT
+            <input type="number" name="amount" min="{{ settings.deposit_min }}" max="{{ settings.deposit_max }}" required>
+        </label>
+        <button type="submit">Продолжить к оплате</button>
+    </form>
+</section>
+{% endblock %}

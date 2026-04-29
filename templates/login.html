@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ "Регистрация" if register_mode else "Вход" }} - MAGMA PAY{% endblock %}
+{% block auth_content %}
+<section class="auth-card">
+    <div class="auth-top">
+        <div class="brand-mark"><img src="/static/magma-logo.svg" alt="MAGMA PAY"></div>
+        <div>
+            <div class="brand-name">MAGMA PAY</div>
+            <div class="brand-sub">Процессинг платформа</div>
+        </div>
+    </div>
+    <h1>{{ "Создание аккаунта" if register_mode else "Вход в платформу" }}</h1>
+    <p class="auth-copy">Управление балансом, обменом USDT, реквизитами и поддержкой в закрытом кабинете.</p>
+    <form method="POST" class="form-grid">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Email
+            <input type="email" name="email" placeholder="Введите email" required>
+        </label>
+        <label>Пароль
+            <div class="password-wrap">
+                <input type="password" name="password" placeholder="Минимум 6 символов" data-password-toggle required>
+                <button type="button" class="password-toggle" data-password-toggle-btn>Показать</button>
+            </div>
+        </label>
+        {% if register_mode %}
+        <label>Повтор пароля
+            <div class="password-wrap">
+                <input type="password" name="confirm_password" placeholder="Повторите пароль" data-password-toggle required>
+                <button type="button" class="password-toggle" data-password-toggle-btn>Показать</button>
+            </div>
+        </label>
+        {% endif %}
+        <button type="submit">{{ "Создать аккаунт" if register_mode else "Войти" }}</button>
+    </form>
+    <div class="auth-footer">
+        {% if register_mode %}
+        <a href="/login">Уже есть аккаунт? Войти</a>
+        {% else %}
+        <a href="/register">Нет аккаунта? Зарегистрироваться</a>
+        {% endif %}
+    </div>
+    <div class="auth-safe-note">Безопасный вход • Защита данных • MAGMA PAY</div>
+</section>
+{% endblock %}
