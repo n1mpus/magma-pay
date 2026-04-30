@@ -567,7 +567,8 @@ def load_state():
 
     if DATA_FILE.exists():
         try:
-            raw = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+            # `utf-8-sig` safely handles files saved with BOM (common on Windows/PowerShell).
+            raw = json.loads(DATA_FILE.read_text(encoding="utf-8-sig"))
         except (OSError, json.JSONDecodeError):
             raw = {}
     else:
