@@ -202,8 +202,10 @@ def clear_rate_limit(scope, key):
     bucket.pop(key, None)
 
 
-def get_deposit_address(network):
-    dynamic = STATE.get("settings", {}).get("deposit_addresses", {})
+def get_deposit_address(network, state=None):
+    # During startup `STATE` may not be initialized yet, so read from explicit state first.
+    source_state = state if isinstance(state, dict) else globals().get("STATE", {})
+    dynamic = source_state.get("settings", {}).get("deposit_addresses", {})
     address = (dynamic.get(network) or "").strip()
     if address:
         return address
