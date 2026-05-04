@@ -60,7 +60,7 @@
         </label>
 
         <label>Приоритет и снижение спреда
-            <input type="range" min="0" max="8" step="0.1" value="{{ trade_spread_reduction }}" name="spread_reduction" id="spread-reduction">
+            <input type="range" min="{{ settings.spread_reduction_min if settings.spread_reduction_min is not none else 0 }}" max="{{ settings.spread_reduction_max if settings.spread_reduction_max is not none else 8 }}" step="0.1" value="{{ trade_spread_reduction }}" name="spread_reduction" id="spread-reduction">
             <span class="muted" id="spread-reduction-label">Приоритет: 0% / снижение спреда: 0.0%</span>
         </label>
 

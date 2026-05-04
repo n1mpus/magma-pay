@@ -132,11 +132,23 @@
             <label>Спред
                 <input type="number" step="0.1" name="spread" value="{{ settings.spread_percent }}" required>
             </label>
+            <label>Мин. спред платформы
+                <input type="number" step="0.1" name="spread_min" value="{{ settings.spread_min if settings.spread_min is not none else 0.1 }}" required>
+            </label>
+            <label>Макс. спред платформы
+                <input type="number" step="0.1" name="spread_max" value="{{ settings.spread_max if settings.spread_max is not none else 25.0 }}" required>
+            </label>
+            <label>Мин. снижение спреда (ползунок)
+                <input type="number" step="0.1" name="spread_reduction_min" value="{{ settings.spread_reduction_min if settings.spread_reduction_min is not none else 0.0 }}" required>
+            </label>
+            <label>Макс. снижение спреда (ползунок)
+                <input type="number" step="0.1" name="spread_reduction_max" value="{{ settings.spread_reduction_max if settings.spread_reduction_max is not none else 8.0 }}" required>
+            </label>
             <button type="submit">Обновить спред</button>
         </form>
         <form action="/admin/set-online" method="POST" class="form-grid compact-top">
-            <label>Базовый онлайн
-                <input type="number" name="online" min="0" value="{{ settings.online }}" required>
+            <label>Коррекция онлайна (+/- к расписанию МСК)
+                <input type="number" name="online" min="-5000" max="5000" value="{{ settings.online }}" required>
             </label>
             <label>Диапазон скачка онлайна (+/-)
                 <input type="number" name="online_variation" min="0" max="5000" value="{{ settings.online_variation if settings.online_variation is not none else 7 }}" required>

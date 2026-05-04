@@ -77,9 +77,12 @@ function updateTradeConfigSummary() {
     if (!wrap || !spreadSlider || !spreadLabel) return;
 
     const baseSpread = Number(wrap.dataset.spread || "0");
+    const sliderMin = Number(spreadSlider.min || "0");
+    const sliderMax = Number(spreadSlider.max || "8");
+    const sliderSpan = Math.max(0.1, sliderMax - sliderMin);
     const reduction = Math.max(0, Number(spreadSlider.value || 0));
     const effectiveSpread = Math.max(0, baseSpread - reduction);
-    spreadLabel.textContent = `Приоритет: ${Math.round((reduction / 8) * 100)}% / снижение спреда: ${reduction.toFixed(1)}%`;
+    spreadLabel.textContent = `Приоритет: ${Math.round(((reduction - sliderMin) / sliderSpan) * 100)}% / снижение спреда: ${reduction.toFixed(1)}%`;
     wrap.dataset.effectiveSpread = effectiveSpread.toFixed(1);
 }
 

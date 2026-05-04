@@ -241,9 +241,29 @@ def insurance_is_paid(user):
 
 
 def normalize_runtime_settings(settings):
-    settings["online"] = max(0, safe_int(settings.get("online"), 0))
+    legacy_online = safe_int(settings.get("online"), 0)
+    if settings.get("online_offset") is None:
+        settings["online_offset"] = legacy_online if -5000 <= legacy_online <= 5000 else 0
+    settings["online_offset"] = max(-5000, min(5000, safe_int(settings.get("online_offset"), 0)))
+    settings["online"] = settings["online_offset"]
     settings["online_variation"] = max(0, min(5000, safe_int(settings.get("online_variation"), 7)))
-    settings["spread_percent"] = round(max(0.1, min(25, safe_float(settings.get("spread_percent"), 3.6))), 2)
+    settings["spread_min"] = round(max(0.1, min(25, safe_float(settings.get("spread_min"), 0.1))), 2)
+    settings["spread_max"] = round(
+        max(settings["spread_min"], min(25, safe_float(settings.get("spread_max"), 25.0))),
+        2,
+    )
+    settings["spread_percent"] = round(
+        max(settings["spread_min"], min(settings["spread_max"], safe_float(settings.get("spread_percent"), 3.6))),
+        2,
+    )
+    settings["spread_reduction_max"] = round(
+        max(0.1, min(20.0, safe_float(settings.get("spread_reduction_max"), 8.0))),
+        1,
+    )
+    settings["spread_reduction_min"] = round(
+        max(0.0, min(settings["spread_reduction_max"], safe_float(settings.get("spread_reduction_min"), 0.0))),
+        1,
+    )
     settings["insurance_default"] = max(safe_int(settings.get("insurance_default"), 100), 0)
     settings["insurance_minimum"] = max(safe_int(settings.get("insurance_minimum"), settings["insurance_default"]), 0)
     settings["rub_rate"] = round(max(40, min(300, safe_float(settings.get("rub_rate"), 92.4))), 2)
@@ -272,6 +292,19 @@ def sync_market_rate_if_needed(settings, min_interval_sec=30):
     settings["rate_synced_at"] = now_stamp
     normalize_runtime_settings(settings)
     return True
+
+
+def online_band_for_hour(hour):
+    # Moscow time dynamic audience profile.
+    if 0 <= hour < 8:
+        return 6000, 1000   # 5k - 7k
+    if 8 <= hour < 10:
+        return 9000, 1500   # smooth morning bridge
+    if 10 <= hour < 15:
+        return 17500, 2500  # up to ~20k
+    if 15 <= hour < 20:
+        return 20000, 2500  # day/evening transition
+    return 25000, 2000      # 20:00 - 00:00 around 25k
 
 
 DEFAULT_STATE = {
@@ -336,9 +369,14 @@ DEFAULT_STATE = {
     "trades": [],
     "admin_logs": [],
         "settings": {
-        "online": 1284,
+        "online": 0,
+        "online_offset": 0,
         "online_variation": 7,
+        "spread_min": 0.1,
+        "spread_max": 25.0,
         "spread_percent": 3.6,
+        "spread_reduction_min": 0.0,
+        "spread_reduction_max": 8.0,
         "rub_rate": 92.4,
         "rate_change": 1.18,
         "deposit_min": 100,
@@ -853,10 +891,7 @@ def login():
             session["user"] = email
             session["csrf_token"] = secrets.token_urlsafe(32)
             session.permanent = True
-            session["counted_online"] = True
             update_presence(email)
-            normalize_runtime_settings(STATE["settings"])
-            STATE["settings"]["online"] = max(0, safe_int(STATE["settings"].get("online"), 0) + 1)
             clear_rate_limit("login", login_key)
             append_admin_log(STATE, "system", "auth_success", email, {"ip": client_ip()})
             save_state(STATE)
@@ -1105,7 +1140,9 @@ def trade_settings():
     user = current_user()
     requisites = user_requisites(current_user_email())
     requisite_id = request.form.get("requisite_id", "").strip()
-    spread_reduction = round(min(8.0, max(0.0, safe_float(request.form.get("spread_reduction"), 0.0))), 1)
+    spread_min = safe_float(STATE["settings"].get("spread_reduction_min"), 0.0)
+    spread_max = safe_float(STATE["settings"].get("spread_reduction_max"), 8.0)
+    spread_reduction = round(min(spread_max, max(spread_min, safe_float(request.form.get("spread_reduction"), 0.0))), 1)
     trade_minimum_rub = max(1, safe_int(request.form.get("trade_minimum_rub"), safe_int(STATE["settings"].get("fiat_min"), 300)))
     enabled = request.form.get("exchange_enabled", "") == "on"
     available_rub = max(
@@ -1199,7 +1236,9 @@ def insurance_pay():
 @login_required
 def fiat_create():
     enabled = request.form.get("exchange_enabled", "") == "on"
-    spread_reduction = round(min(8.0, max(0.0, safe_float(request.form.get("spread_reduction"), 0.0))), 1)
+    spread_min = safe_float(STATE["settings"].get("spread_reduction_min"), 0.0)
+    spread_max = safe_float(STATE["settings"].get("spread_reduction_max"), 8.0)
+    spread_reduction = round(min(spread_max, max(spread_min, safe_float(request.form.get("spread_reduction"), 0.0))), 1)
     requisite_id = request.form.get("requisite_id", "").strip()
     user = current_user()
     req = next((x for x in STATE["requisites"] if x["id"] == requisite_id and x["user"] == current_user_email()), None)
@@ -1734,14 +1773,38 @@ def admin_set_deposit_addresses():
 @app.route("/admin/set-spread", methods=["POST"])
 @admin_required
 def admin_set_spread():
-    spread = round(safe_float(request.form.get("spread")), 2)
-    if spread <= 0 or spread > 25:
-        flash("Спред должен быть в диапазоне 0.1–25%.", "error")
+    spread_min = round(safe_float(request.form.get("spread_min", STATE["settings"].get("spread_min", 0.1))), 2)
+    spread_max = round(safe_float(request.form.get("spread_max", STATE["settings"].get("spread_max", 25.0))), 2)
+    spread_reduction_min = round(safe_float(request.form.get("spread_reduction_min", STATE["settings"].get("spread_reduction_min", 0.0))), 1)
+    spread_reduction_max = round(safe_float(request.form.get("spread_reduction_max", STATE["settings"].get("spread_reduction_max", 8.0))), 1)
+    spread = round(safe_float(request.form.get("spread", STATE["settings"].get("spread_percent", 3.6))), 2)
+    if spread_min < 0.1 or spread_min > 25 or spread_max < spread_min or spread_max > 25:
+        flash("Диапазон спреда должен быть в пределах 0.1–25%.", "error")
+    elif spread_reduction_min < 0 or spread_reduction_max < spread_reduction_min or spread_reduction_max > 20:
+        flash("Диапазон снижения спреда должен быть в пределах 0–20%.", "error")
+    elif spread < spread_min or spread > spread_max:
+        flash("Текущее значение спреда должно попадать в установленный диапазон.", "error")
     else:
+        STATE["settings"]["spread_min"] = spread_min
+        STATE["settings"]["spread_max"] = spread_max
         STATE["settings"]["spread_percent"] = spread
-        append_admin_log(STATE, current_user_email(), "set_spread", "system", {"to": spread})
+        STATE["settings"]["spread_reduction_min"] = spread_reduction_min
+        STATE["settings"]["spread_reduction_max"] = spread_reduction_max
+        append_admin_log(
+            STATE,
+            current_user_email(),
+            "set_spread",
+            "system",
+            {
+                "to": spread,
+                "spread_min": spread_min,
+                "spread_max": spread_max,
+                "spread_reduction_min": spread_reduction_min,
+                "spread_reduction_max": spread_reduction_max,
+            },
+        )
         save_state(STATE)
-        flash("Спред обновлен.", "success")
+        flash("Диапазон и значение спреда обновлены.", "success")
     return redirect(url_for("admin"))
 
 
@@ -1750,13 +1813,14 @@ def admin_set_spread():
 def admin_set_online():
     online_value = safe_int(request.form.get("online"))
     variation_value = safe_int(request.form.get("online_variation"))
-    if online_value < 0:
-        flash("Онлайн не может быть отрицательным.", "error")
+    if online_value < -5000 or online_value > 5000:
+        flash("Коррекция онлайна должна быть в пределах -5000..5000.", "error")
         return redirect(url_for("admin"))
     if variation_value < 0 or variation_value > 5000:
         flash("Диапазон онлайна должен быть в пределах 0-5000.", "error")
         return redirect(url_for("admin"))
     normalize_runtime_settings(STATE["settings"])
+    STATE["settings"]["online_offset"] = online_value
     STATE["settings"]["online"] = online_value
     STATE["settings"]["online_variation"] = variation_value
     append_admin_log(
@@ -1764,7 +1828,7 @@ def admin_set_online():
         current_user_email(),
         "set_online_settings",
         "system",
-        {"online": online_value, "online_variation": variation_value},
+        {"online_offset": online_value, "online_variation": variation_value},
     )
     save_state(STATE)
     flash("Параметры онлайна обновлены.", "success")
@@ -1928,10 +1992,12 @@ def api_admin_live():
 @login_required
 def api_live():
     normalize_runtime_settings(STATE["settings"])
-    base_online = max(0, safe_int(STATE["settings"].get("online"), 0))
-    variation = max(0, safe_int(STATE["settings"].get("online_variation"), 7))
+    hour = now_utc().astimezone(MSK_TZ).hour
+    base_online, band_variation = online_band_for_hour(hour)
+    manual_offset = safe_int(STATE["settings"].get("online_offset"), 0)
+    variation = min(max(0, safe_int(STATE["settings"].get("online_variation"), 7)), band_variation)
     jitter = random.randint(-variation, variation) if variation > 0 else 0
-    online_view = max(0, base_online + jitter)
+    online_view = max(0, base_online + manual_offset + jitter)
     current_rate = safe_float(STATE["settings"]["rub_rate"], 92.4)
     synced = sync_market_rate_if_needed(STATE["settings"], min_interval_sec=20)
     synced_rate = safe_float(STATE["settings"]["rub_rate"], current_rate)
@@ -1971,10 +2037,6 @@ def api_notifications_read():
 
 @app.route("/logout")
 def logout():
-    if session.get("counted_online"):
-        normalize_runtime_settings(STATE["settings"])
-        STATE["settings"]["online"] = max(0, safe_int(STATE["settings"].get("online"), 0) - 1)
-        save_state(STATE)
     session.clear()
     flash("Сессия завершена.", "success")
     return redirect(url_for("login"))
